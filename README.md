@@ -1,17 +1,18 @@
-# 🧠 Análisis de Infracción a la Decisión Andina 486 en Reivindicaciones de Patentes
+# 🧠 Análisis de Infracción a la Decisión Andina 486 usando Modelos de Lenguaje
 
-Este proyecto tiene como objetivo desarrollar un modelo de lenguaje que determine si una **reivindicación de patente infringe la Decisión Andina 486**, con base en resoluciones emitidas por la oficina de patentes de Perú (INDECOPI) y documentos oficiales de patente extraídos vía la API de la Oficina Europea de Patentes (EPO - OPS). Este proyecto se enfoca en los artículos 14,15, y 20 de la norma mencionada.
+Este proyecto busca entrenar un modelo de lenguaje (LLM) que **reciba una reivindicación de patente y genere una justificación argumentativa indicando si infringe o no** los artículos **14, 15, 20 o 21** de la **Decisión Andina 486**, con base en resoluciones emitidas por la oficina de patentes de Perú simulando el estilo técnico-jurídico de dichos informes.
 
 ---
 
 ## 🔍 Motivación
 
-La evaluación de infracciones a normas como la Decisión Andina 486 suele requerir análisis experto. Automatizar parte de este proceso puede ayudar a:
+La interpretación legal y técnica de las reivindicaciones en patentes suele requerir análisis experto y experiencia multidisciplinaria. Automatizar parte de este proceso puede ayudar a:
 
-- Agilizar revisiones preliminares.
-- Detectar patrones frecuentes de infracción.
-- Proporcionar apoyo a examinadores y profesionales del área legal.
+- Agilizar la revisión y análisis en etapas tempranas de redacción o validación de patentes.
+- Proporcionar apoyo a examinadores de patentes con borradores preliminares de evaluación.
+- Detectar patrones comunes de infracción normativa.
 - Permitir a los redactores de patentes obtener una opinión temprana y preliminar sobre sus reivindicaciones.
+- Crear un asistente legal-tecnológico que emule el razonamiento de la autoridad administrativa.
 
 ---
 
@@ -47,11 +48,11 @@ Instalar dependencias:
 pip install -r requirements.txt
 ```
 
-> Asegúrate de tener instalado:
+> Dependencias externas:
 >
 > - [Tesseract OCR](https://github.com/tesseract-ocr/tesseract)
 > - Chrome + Chromedriver (para Selenium)
-> - Ghostscript y Poppler si usas Windows para manejo de PDFs
+> - Ghostscript y Poppler (para manejo de PDFs en Windows)
 
 ---
 
@@ -66,7 +67,7 @@ pip install -r requirements.txt
 ### 2. Descarga de patentes desde OPS (EPO)
 
 - Script: `scripts/ops_download.py`
-- Usa el número de solicitud para obtener las páginas de **reivindicaciones**
+- Usa el número de la publicación para obtener las páginas de **reivindicaciones**
 - Controla el uso de la API para evitar bloqueo por throttling
 
 ### 3. OCR sobre páginas de reivindicaciones
@@ -75,27 +76,24 @@ pip install -r requirements.txt
 - Convierte TIFF a texto utilizando `pytesseract` y OpenCV
 - Recorta automáticamente regiones de texto
 
-### 4. Preparación de dataset
+### 4. Construcción del dataset para fine-tuning
 
-- Combina los textos OCR con las resoluciones para construir un dataset supervisado
+- Unión de resoluciones (como fuente de razonamiento experto) y texto de reivindicaciones extraídas
+- Anotación de la infracción por artículo con su justificación, replicando el estilo de las resoluciones de INDECOPI
 
-### 5. Entrenamiento y generación de decisiones con modelos
+### 5. Entrenamiento del modelo generativo
 
-- El proyecto contempla tanto modelos de clasificación binaria como modelos generativos basados en LLMs.
-
-- Modelos de clasificación: SVM, regresión logística y transformers como `anferico/bert-for-patents` son utilizados para predecir si una reivindicación infringe la norma.
-
-- Modelos generativos: Se emplean LLMs ajustados al dominio legal para generar textos explicativos simulando el lenguaje técnico-jurídico empleado por INDECOPI.
-
-- El objetivo es que, además de una clasificación (Sí/No), el sistema pueda **emitir una decisión fundamentada en texto**, similar a cómo lo haría un examinador en una resolución oficial.
-
-- Fine-tuning y evaluación en tareas de clasificación binaria
+- Se utilizarán modelos tipo LLM (ej: mistralai/Mistral-7B-Instruct, llama3, phi, patent-specific LLMs)
+- El objetivo es que el modelo genere una decisión fundamentada en texto, indicando:
+  - si hay o no infracción
+  - qué artículo se infringe
+  - el razonamiento detallado basado en el contenido de la reivindicación
 
 ---
 
-## 🔐 Credenciales (config.ini)
+## 🔐 Credenciales para OPS (config.ini)
 
-Crear tu propio archivo `config.ini` basado en este template:
+Crear tu propio archivo `config.ini` basado en este template para poder utilizar la interfaz de Open Patent Services RESTful Web Services:
 
 ```ini
 [ops_api]
@@ -105,7 +103,7 @@ auth_url = https://ops.epo.org/3.2/auth/accesstoken
 base_url = http://ops.epo.org/rest-services/published-data
 ```
 
-Este archivo debe estar en la raíz del proyecto y está **excluido del repositorio** por seguridad (`.gitignore`).
+Este archivo debe estar en la raíz del proyecto.
 
 ---
 
