@@ -29,6 +29,8 @@ patent_infringement_486/
 ├── scripts/                   # Scripts de scraping, descarga y OCR
 │   └── utils/                 # Funciones auxiliares
 │
+├── sql/                       # Query para Patstat
+│
 ├── models/                    # Modelos entrenados
 │   └── fine_tuned/            # Modelos ajustados al dominio
 │
@@ -58,30 +60,49 @@ pip install -r requirements.txt
 
 ## 🧲 Etapas del Proyecto
 
+```mermaid
+graph LR
+A(Scraping Indecopi) --> B(Consultar Patstat)
+B --> C(Descargar Patentes)
+C --> D(Extraer texto claims - OCR)
+D --> E(Construir dataset)
+E --> F(Fine-tunning)
+```
+
 ### 1. Scraping de resoluciones INDECOPI
 
 - Script: `scripts/automatizar_descarga_paginado.py`
 - Filtra por área "Invenciones y Nuevas Tecnologías"
+- En palabras clave usar "articulo 15" y "articulo 20"
 - Descarga PDFs y genera CSV con metadatos
 
-### 2. Descarga de patentes desde OPS (EPO)
+### 2. Recuperar la familia de patentes en Patstat
+
+- Query: `sql/query_sql.sql`
+- Notebook #1: `notebooks/generar_numsol_patstat`
+- Notebook #2: `notebooks/asignar_prioridad`
+- Utiliza el número de las solictudes de patentes obtenidas en las resoluciones del Indecopi y formateadas en el Notebook #1.
+- Se extrae solo la información de las publicaciones de las oficinas de España y México debido a que suelen publicar textos completos en español.
+
+### 3. Descarga de patentes desde OPS (EPO)
 
 - Script: `scripts/ops_download.py`
 - Usa el número de la publicación para obtener las páginas de **reivindicaciones**
 - Controla el uso de la API para evitar bloqueo por throttling
 
-### 3. OCR sobre páginas de reivindicaciones
+### 4. OCR sobre páginas de reivindicaciones
 
 - Script: `scripts/ocr_pdf_2.py`
 - Convierte TIFF a texto utilizando `pytesseract` y OpenCV
 - Recorta automáticamente regiones de texto
+- Construye un pdf con las reivindicaciones por cada solicitud
 
-### 4. Construcción del dataset para fine-tuning
+### 5. Construcción del dataset para *fine-tuning*
 
 - Unión de resoluciones (como fuente de razonamiento experto) y texto de reivindicaciones extraídas
 - Anotación de la infracción por artículo con su justificación, replicando el estilo de las resoluciones de INDECOPI
 
-### 5. Entrenamiento del modelo generativo
+### 6. *Fine-tunning* del modelo generativo
 
 - Se utilizarán modelos tipo LLM (ej: mistralai/Mistral-7B-Instruct, llama3, phi, patent-specific LLMs)
 - El objetivo es que el modelo genere una decisión fundamentada en texto, indicando:
